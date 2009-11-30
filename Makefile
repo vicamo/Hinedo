@@ -2,17 +2,14 @@ VER=0.4
 GTK2_CFLAGS=`pkg-config gtk+-2.0 --cflags`
 GTK2_LIBS=`pkg-config gtk+-2.0 --libs`
 
-OBJS=hinedo.o eggtrayicon.o
+OBJS=hinedo.o
 PREFIX=$(DESTDIR)/usr
 
 all: $(OBJS)
 	cc -o hinedo $(GTK2_LIBS) $(OBJS)
 
 hinedo.o: hinedo.c
-	cc -c -DPREFIX=\"$(PREFIX)\" -DVERSION=\"$(VER)\" $(GTK2_CFLAGS) hinedo.c >/dev/null 2>&1
-
-eggtrayicon.o: eggtrayicon.c eggtrayicon.h
-	cc -c $(GTK2_CFLAGS) -DEGG_COMPILATION eggtrayicon.c
+	cc -Wall -c -DPREFIX=\"$(PREFIX)\" -DVERSION=\"$(VER)\" $(GTK2_CFLAGS) hinedo.c
 
 clean:
 	rm -f hinedo

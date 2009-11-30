@@ -19,24 +19,33 @@
 #include <gtk/gtk.h>
 #include <glib/gi18n.h>
 
+#include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <signal.h>
 #include <sys/wait.h>
 #include <string.h>
 
-#include "eggtrayicon.h"
-
 #define LIBDIR        PREFIX"/lib/hinedo"
 
-static const char* current = NULL;
+enum
+{
+    MARK_BEGIN = 1,
+    MARK_END
+};
+
+static const char *range_key = "range_key";
+static char* current = NULL;
 static GPid pid = 0;
+static GtkMenu *popup;
+static GSList *group;
+static gint default_position;
 
 static void show_error( const char* msg )
 {
     GtkWidget* dlg;
     dlg = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL,
-                    GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, msg );
+                    GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, "%s", msg );
     gtk_dialog_run( (GtkDialog*)dlg );
     gtk_widget_destroy( dlg );
 }
@@ -56,18 +65,20 @@ static void kill_player()
 
 static void play_radio( const char* id )
 {
-    char cmd[1024];
     char* argv[3] = { NULL, NULL, NULL };
     GError* err = NULL;
 
+    g_free (current);
+    current = g_strdup (id);
+
     argv[0] = get_file( "play" );
-    argv[1] = id;
+    argv[1] = current;
 
     if( pid )
         kill_player();
 
     g_spawn_async( NULL, argv, NULL, 0, NULL, NULL, &pid, &err );
-    g_free( argv[0] );
+    g_free (argv[0]);
 
     if( err )
     {
@@ -84,7 +95,7 @@ static void on_update_menu( GtkWidget* item, gpointer user_data )
     if( g_spawn_command_line_sync( cmd, NULL, NULL, NULL, &err ) )
     {
         dlg = gtk_message_dialog_new( NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_INFO, GTK_BUTTONS_OK, "電台清單更新完成！" );
-        gtk_dialog_run( dlg );
+        gtk_dialog_run (GTK_DIALOG (dlg));
         gtk_widget_destroy( dlg );
     }
     else
@@ -98,13 +109,8 @@ static void on_update_menu( GtkWidget* item, gpointer user_data )
 
 static void on_menu( GtkWidget* item, gpointer user_data )
 {
-    int i;
-    char* id = (char*)g_object_get_data(item, "id");
-    if( ! GTK_CHECK_MENU_ITEM(item)->active )
-        return;
-    g_free( current );
-    current = g_strdup( id );
-    play_radio( id );
+    if (gtk_check_menu_item_get_active (GTK_CHECK_MENU_ITEM (item)))
+        play_radio ((const char*) user_data);
 }
 
 void on_stop( GtkCheckMenuItem* item, gpointer user_data )
@@ -139,15 +145,65 @@ static void on_about( GtkWidget* item, gpointer user_data )
     dlg = NULL;
 }
 
-void on_tray_icon_button_press_event( GtkWidget* widget, GdkEventButton* evt, gpointer user_data )
+static void
+on_status_icon_activate_event (GtkStatusIcon *status_icon,
+                               gpointer       menu)
 {
-    GtkMenu* menu = gtk_menu_new();
-    GtkWidget* category = NULL;
-    GtkMenuItem* menu_item;
-    int i;
+    gtk_menu_popup (menu, NULL, NULL,
+                    gtk_status_icon_position_menu, status_icon,
+                    0, gtk_get_current_event_time ());
+}
+
+static void
+remove_playlist ()
+{
+    GList *children;
+    GList *list;
+    gpointer data;
+    gboolean found;
+
+    children = gtk_container_get_children (GTK_CONTAINER (popup));
+    list = children;
+    found = FALSE;
+
+    while (list)
+    {
+        data = g_object_get_data (G_OBJECT (list->data), range_key);
+        switch (GPOINTER_TO_INT (data))
+        {
+        case MARK_BEGIN:
+            found = TRUE;
+            break;
+
+        case MARK_END:
+            found = FALSE;
+            break;
+
+        default:
+            if (found)
+            {
+                gtk_container_remove (GTK_CONTAINER (popup),
+                                      GTK_WIDGET (list->data));
+            }
+            break;
+        }
+
+        list = g_list_next (list);
+    }
+
+    g_list_free (children);
+}
+
+static void
+populate_playlist ()
+{
+    GtkWidget *category = NULL;
+    GtkWidget *item = NULL;
+    gint position = default_position;
     FILE* fi;
-    GSList* group = NULL;
     char buf[1024], *name, *id, *tab, *fn;
+
+    remove_playlist ();
 
     fn = get_file( "menu" );
     fi=fopen(fn, "r");
@@ -155,17 +211,6 @@ void on_tray_icon_button_press_event( GtkWidget* widget, GdkEventButton* evt, gp
 
     if( ! fi )
         return;
-
-    menu_item = gtk_radio_menu_item_new_with_label( group, "停止播放" );
-    group = gtk_radio_menu_item_get_group( menu_item );
-    gtk_menu_shell_append( menu, menu_item );
-    g_signal_connect( menu_item, "toggled", on_stop, NULL );
-
-    menu_item = gtk_image_menu_item_new_with_label( "線上更新電台清單" );
-    gtk_menu_shell_append( menu, menu_item );
-    g_signal_connect( menu_item, "activate", on_update_menu, NULL );
-
-    gtk_menu_shell_append( menu, gtk_separator_menu_item_new() );
 
     while( fgets( buf, sizeof(buf), fi ) ) {
         name = strtok( buf, "\r\n");
@@ -178,21 +223,27 @@ void on_tray_icon_button_press_event( GtkWidget* widget, GdkEventButton* evt, gp
             {
                 id = tab + 1;
                 *tab = '\0';
-                menu_item = gtk_radio_menu_item_new_with_label( group, name );
-                group = gtk_radio_menu_item_get_group( menu_item );
-                g_object_set_data_full( menu_item, "id", g_strdup( id ), g_free );
+
+                item = gtk_radio_menu_item_new_with_label (group, name);
+                group = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (item));
                 if( current && 0 == strcmp( id, current ) )
-                    gtk_check_menu_item_set_active( menu_item, TRUE );
-                g_signal_connect( menu_item, "toggled", on_menu, NULL );
-                gtk_menu_shell_append( category, menu_item );
+                    gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (item), TRUE);
+                g_signal_connect_data (item, "toggled", G_CALLBACK (on_menu),
+                                       g_strdup (id), (GClosureNotify)g_free, 0);
+                gtk_menu_shell_append (GTK_MENU_SHELL (category), item );
+                gtk_widget_show (item);
             }
         }
         else if( *name )    /* category */
         {
-            menu_item = gtk_menu_item_new_with_label( name );
+            item = gtk_menu_item_new_with_label( name );
             category = gtk_menu_new();
-            gtk_menu_item_set_submenu( menu_item, category );
-            gtk_menu_shell_append( menu, menu_item );
+            gtk_menu_item_set_submenu (GTK_MENU_ITEM (item), category );
+            gtk_menu_shell_insert (GTK_MENU_SHELL (popup),
+                                   item, position);
+            gtk_widget_show_all (item);
+
+            ++position;
         }
         else    /* end of category */
         {
@@ -200,20 +251,6 @@ void on_tray_icon_button_press_event( GtkWidget* widget, GdkEventButton* evt, gp
         }
     }
     fclose( fi );
-
-    gtk_menu_shell_append( menu, gtk_separator_menu_item_new() );
-
-    menu_item = gtk_image_menu_item_new_from_stock( GTK_STOCK_ABOUT, NULL );
-    gtk_menu_shell_append( menu, menu_item );
-    g_signal_connect( menu_item, "activate", on_about, NULL );
-
-    menu_item = gtk_image_menu_item_new_from_stock( GTK_STOCK_QUIT, NULL );
-    gtk_menu_shell_append( menu, menu_item );
-    g_signal_connect( menu_item, "activate", gtk_main_quit, NULL );
-
-    g_signal_connect( menu, "selection-done", gtk_widget_destroy, NULL );
-    gtk_widget_show_all( menu );
-    gtk_menu_popup( menu, NULL, NULL, NULL, NULL, evt->button, evt->time );
 }
 
 /* Looking for update of hinedo */
@@ -234,32 +271,77 @@ static void check_update()
         }
         g_free( error );
     }
+
+    populate_playlist ();
+}
+
+static void
+init_ui ()
+{
+    GtkStatusIcon *status_icon;
+    GtkWidget *item;
+
+    /* init popup menu */
+    popup = GTK_MENU (gtk_menu_new ());
+
+    item = gtk_radio_menu_item_new_with_label (NULL, "停止播放");
+    group = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (item));
+    gtk_menu_shell_append (GTK_MENU_SHELL (popup), item);
+    g_signal_connect (G_OBJECT (item), "toggled",
+                      G_CALLBACK (on_stop), NULL);
+    ++default_position;
+
+    item = gtk_image_menu_item_new_with_label ("線上更新電台清單");
+    gtk_menu_shell_append (GTK_MENU_SHELL (popup), item);
+    g_signal_connect (G_OBJECT (item), "activate",
+                      G_CALLBACK (on_update_menu), NULL);
+    ++default_position;
+
+    item = gtk_separator_menu_item_new ();
+    g_object_set_data (G_OBJECT (item), range_key,
+                       GINT_TO_POINTER (MARK_BEGIN));
+    gtk_menu_shell_append (GTK_MENU_SHELL (popup), item);
+    ++default_position;
+
+    item = gtk_separator_menu_item_new ();
+    g_object_set_data (G_OBJECT (item), range_key,
+                       GINT_TO_POINTER (MARK_END));
+    gtk_menu_shell_append (GTK_MENU_SHELL (popup), item);
+
+    item = gtk_image_menu_item_new_from_stock (GTK_STOCK_ABOUT, NULL);
+    gtk_menu_shell_append (GTK_MENU_SHELL (popup), item);
+    g_signal_connect (G_OBJECT (item), "activate",
+                      G_CALLBACK (on_about), NULL);
+
+    item = gtk_image_menu_item_new_from_stock (GTK_STOCK_QUIT, NULL);
+    gtk_menu_shell_append (GTK_MENU_SHELL (popup), GTK_WIDGET (item));
+    g_signal_connect (G_OBJECT (item), "activate",
+                      G_CALLBACK (gtk_main_quit), NULL);
+
+    gtk_widget_show_all (GTK_WIDGET (popup));
+
+    /* init status icon */
+    status_icon = gtk_status_icon_new_from_icon_name ("hinedo");
+    gtk_status_icon_set_tooltip_text (status_icon, "Hinedo 電台點播器");
+    g_signal_connect (G_OBJECT (status_icon), "activate",
+                      G_CALLBACK (on_status_icon_activate_event), popup);
+
+    gtk_status_icon_set_visible (status_icon, TRUE);
 }
 
 int main( int argc, char** argv )
 {
-    GtkWidget *icon;
-    GtkWidget *evt_box;
-    GtkTooltips *tooltips;
-    EggTrayIcon *tray_icon;
-
     gtk_init( &argc, &argv );
 
-    check_update();
+    /* MUST init UI before check update */
+    init_ui ();
 
-    tooltips = gtk_tooltips_new ();
-    tray_icon = egg_tray_icon_new ("Hinedo 電台點播器");
-    evt_box = gtk_event_box_new ();
-    gtk_container_add (GTK_CONTAINER (tray_icon), evt_box);
-    g_signal_connect (G_OBJECT (evt_box), "button-press-event",
-            G_CALLBACK (on_tray_icon_button_press_event), NULL);
-    gtk_tooltips_set_tip (GTK_TOOLTIPS(tooltips), evt_box, "Hinedo 電台點播器", NULL);
+    check_update ();
 
-    icon = gtk_image_new_from_icon_name( "hinedo", GTK_ICON_SIZE_MENU );
-    gtk_container_add (GTK_CONTAINER (evt_box), icon);
-
-    gtk_widget_show_all (GTK_WIDGET (tray_icon));
+    /* go event loop */
     gtk_main();
+
+    /* clean up */
     if( pid > 0 )
         kill_player();
 
