@@ -1,0 +1,16 @@
+[Desktop Entry]
+Categories=GTK;Application;AudioVideo;Audio;Player;
+Encoding=UTF-8
+Name=Hinedo
+Name[zh_TW]=Hinedo 電台選播器
+Exec=hinedo
+Icon=hinedo.png
+StartupNotify=true
+Type=Application
+Terminal=false
+
+GenericName=Radio Tunner
+GenericName[zh_TW]=電台選播器
+Comment=Listen to Hinet radio in an easy way
+Comment[zh_TW]=用輕鬆容易的方式收聽 Hinet 提供的 網路廣播
+

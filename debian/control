@@ -1,0 +1,20 @@
+Source: hinedo
+Section: x11
+Priority: extra
+Maintainer: PCMan <pcman.tw@gmail.com>
+Build-Depends: debhelper (>= 5), libgtk2.0-dev (>=2.6)
+Standards-Version: 3.7.2
+
+Package: hinedo
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, python, mplayer
+Description: Gtk Hinet Radio Tunner - Listen to Hinet radio easily.
+ Gtk Hinet Radio Tunner - Handy tool used to listen to Hinet radio easily.
+ The original webpage of Hinet radio is IE/Windows Media Player only, and is
+ very unfriendly to Linux users. This handy tool parses the webpage, grabs
+ all of the URLs automatically, and then displays all channels in a clean and 
+ intuitive UI without any advertisement.
+ .
+ Copyright (C) 2007 Hong Jen Yee (PCMan)
+ Released under GNU General Public Lisence
+

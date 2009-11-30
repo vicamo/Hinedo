@@ -1,0 +1,119 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# Copyright (c) 2007 洪任諭 (PCMan) <pcman.tw@gmail.com>
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software Foundation,
+#  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+import os, urllib, os.path
+
+VERSION=6   # svn rev of this script
+
+dir_path = os.path.expanduser('~/.config/hinedo/' )
+
+if os.path.exists( dir_path + 'update' ):
+    try:
+        os.execl( dir_path + 'update' )
+    except:
+        pass
+
+def download( url ):
+    class Downloader( urllib.FancyURLopener ):
+        version = 'Windows Media Player'
+    f = Downloader().open( url )
+    if f:
+        content = f.read()
+        f.close()
+        return content
+    return ''
+
+class VerInfo:
+    files = []
+    scripts=[]
+    ver = 0
+    min_ver=0
+    changed = False
+
+    def __init__( self ):
+        ver_info = download( 'http://hinedo.openfoundry.org/x11/version' )
+        lines = ver_info.split( '\n' )
+        for line in lines:
+            if line == '':
+                continue
+            pair = line.split( '=', 1 )
+            name = pair[0]
+            val = pair[1]
+            if name == 'Script' :
+                self.scripts.append( val )
+            if name == 'File' :
+                self.files.append( val )
+            elif name == 'Ver':
+                self.ver = int(val)
+            elif name == 'MinVer':
+                self.min_ver = int(val)
+
+    def check( self ):
+        cur_ver = VERSION
+        try:
+            f = open( dir_path + 'version', 'r' )
+            if f:
+                cur_ver = int( f.read() )
+                f.close()
+        except:
+            pass
+
+        if cur_ver < self.min_ver:
+            print '程式有重大變更，你需要更新到最新版本的 Hinedo，才能繼續收聽\n請到 Hinedo 官方網站下載新版：\nhttp://rt.openfoundry.org/Foundry/Project/Download/?Queue=814'
+            exit( 1 );
+        elif self.ver > cur_ver:
+            self.do_update( True )
+        else:
+            self.do_update( False )
+
+    def retrive_file( self, url, force, is_exe = False ):
+        name = os.path.basename( url )
+        fn = dir_path + name
+        if force or not os.path.exists( fn ):
+            content = download( url )
+            f = open( fn, 'w' )
+            f.write( content )
+            f.close()
+            if is_exe:
+                os.chmod( fn, 0755 )
+            return True
+        return False
+
+    def do_update( self, force ):
+        for url in self.scripts:
+            self.changed = self.retrive_file( url, force, is_exe = True )
+
+        for url in self.files:
+            self.changed = self.retrive_file( url, force )
+
+        if self.changed:
+            f = open( dir_path + 'version', 'w' )
+            f.write( str(self.ver) )
+            f.close()
+            print '已更新到最新版本的 script'
+
+if not os.path.exists( dir_path ):
+    os.makedirs( dir_path, 0755 )
+
+inf = VerInfo()
+inf.check()
+
+if not os.path.exists( dir_path + 'menu' ) or inf.changed:
+    print '正在更新選單...'
+    os.execl( dir_path + 'update_menu' )
