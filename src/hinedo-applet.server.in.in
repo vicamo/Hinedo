@@ -1,0 +1,21 @@
+<oaf_info>
+	<oaf_server iid="OAFIID:hinedo-appletApplet_Factory" type="exe" location="@LIBEXECDIR@/hinedo-applet">
+		<oaf_attribute name="repo_ids" type="stringv">
+			<item value="IDL:Bonobo/GenericFactory:1.0"/>
+			<item value="IDL:Bonobo/Unknown:1.0"/>
+		</oaf_attribute>
+		<oaf_attribute name="name" type="string" value="Hinedo Applet applet Factory"/>
+		<oaf_attribute name="description" type="string" value="Hinet radio player for GNOME"/>
+	</oaf_server>
+
+	<oaf_server iid="OAFIID:hinedo-appletApplet" type="factory" location="OAFIID:hinedo-appletApplet_Factory">
+		<oaf_attribute name="repo_ids" type="stringv">
+			<item value="IDL:GNOME/Vertigo/PanelAppletShell:1.0"/>
+			<item value="IDL:Bonobo/Control:1.0"/>
+			<item value="IDL:Bonobo/Unknown:1.0"/>
+		</oaf_attribute>
+		<oaf_attribute name="name" type="string" value="Hinedo Applet"/>
+		<oaf_attribute name="description" type="string" value="Hinet radio player for GNOME"/>
+		<oaf_attribute name="panel:icon" type="string" value="hinedo-applet.png"/>
+	</oaf_server>
+</oaf_info>
