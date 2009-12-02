@@ -37,7 +37,6 @@ enum
 static const char *range_key = "range_key";
 static char* current = NULL;
 static GPid pid = 0;
-static GtkMenu *popup;
 static GSList *group;
 static gint default_position;
 
@@ -155,7 +154,7 @@ on_status_icon_activate_event (GtkStatusIcon *status_icon,
 }
 
 static void
-remove_playlist ()
+remove_playlist (GtkMenu *popup)
 {
     GList *children;
     GList *list;
@@ -195,7 +194,7 @@ remove_playlist ()
 }
 
 static void
-populate_playlist ()
+populate_playlist (GtkMenu *popup)
 {
     GtkWidget *category = NULL;
     GtkWidget *item = NULL;
@@ -203,7 +202,7 @@ populate_playlist ()
     FILE* fi;
     char buf[1024], *name, *id, *tab, *fn;
 
-    remove_playlist ();
+    remove_playlist (popup);
 
     fn = get_file( "menu" );
     fi=fopen(fn, "r");
@@ -254,7 +253,8 @@ populate_playlist ()
 }
 
 /* Looking for update of hinedo */
-static void check_update()
+static gboolean
+check_update (GtkMenu *popup)
 {
     int status = 0;
     char* error = NULL;
@@ -267,12 +267,18 @@ static void check_update()
                 show_error( error );
                 g_free( error );
             }
-            exit( 1 ); /* abort on error */
+
+            /* exit elegantly */
+            gtk_main_quit ();
+
+            return FALSE;
         }
         g_free( error );
     }
 
-    populate_playlist ();
+    populate_playlist (popup);
+
+    return FALSE;
 }
 
 static void
@@ -280,6 +286,7 @@ init_ui ()
 {
     GtkStatusIcon *status_icon;
     GtkWidget *item;
+    GtkMenu *popup;
 
     /* init popup menu */
     popup = GTK_MENU (gtk_menu_new ());
@@ -327,6 +334,9 @@ init_ui ()
                       G_CALLBACK (on_status_icon_activate_event), popup);
 
     gtk_status_icon_set_visible (status_icon, TRUE);
+
+    /* install idle update */
+    g_idle_add ((GSourceFunc) check_update, popup);
 }
 
 int main( int argc, char** argv )
@@ -335,8 +345,6 @@ int main( int argc, char** argv )
 
     /* MUST init UI before check update */
     init_ui ();
-
-    check_update ();
 
     /* go event loop */
     gtk_main();
