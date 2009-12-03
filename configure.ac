@@ -37,6 +37,7 @@ IT_PROG_INTLTOOL([0.35.0])
 
 AC_OUTPUT([
 Makefile
+data/Makefile
 src/Makefile
 src/hinedo-applet.server.in
 po/Makefile.in
