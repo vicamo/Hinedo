@@ -27,11 +27,73 @@
 
 G_DEFINE_TYPE (HinedoApplet, hinedo_applet, PANEL_TYPE_APPLET);
 
+static void
+popup_menu_position (GtkMenu   *menu,
+                     int       *x,
+                     int       *y,
+                     gboolean  *push_in,
+                     GtkWidget *widget)
+{
+    GtkRequisition requisition;
+    gint menu_xpos;
+    gint menu_ypos;
+
+    gtk_widget_size_request (GTK_WIDGET (menu), &requisition);
+
+    gdk_window_get_origin (widget->window, &menu_xpos, &menu_ypos);
+
+    menu_xpos += widget->allocation.x;
+    menu_ypos += widget->allocation.y;
+
+    switch (panel_applet_get_orient (PANEL_APPLET (widget)))
+    {
+    case PANEL_APPLET_ORIENT_DOWN:
+    case PANEL_APPLET_ORIENT_UP:
+        if (menu_ypos > gdk_screen_get_height (gtk_widget_get_screen (widget)) / 2)
+            menu_ypos -= requisition.height;
+        else
+            menu_ypos += widget->allocation.height;
+        break;
+
+    case PANEL_APPLET_ORIENT_RIGHT:
+    case PANEL_APPLET_ORIENT_LEFT:
+        if (menu_xpos > gdk_screen_get_width (gtk_widget_get_screen (widget)) / 2)
+            menu_xpos -= requisition.width;
+        else
+            menu_xpos += widget->allocation.width;
+        break;
+
+    default:
+            g_assert_not_reached ();
+    }
+
+    *x = menu_xpos;
+    *y = menu_ypos;
+    *push_in = TRUE;
+}
+
+static void
+on_radio_menu_item_signal_group_changed (GtkRadioMenuItem *menu_item,
+                                         HinedoApplet     *applet)
+{
+}
+
 static gboolean
 on_widget_signal_button_press_event (GtkWidget      *widget,
                                      GdkEventButton *event,
-                                     gpointer        user_data)
+                                     HinedoApplet   *applet)
 {
+    /* React only to single left mouse button click */
+    if ((event->button == 1)
+        && (event->type != GDK_2BUTTON_PRESS)
+        && (event->type != GDK_3BUTTON_PRESS))
+    {
+		gtk_menu_popup (applet->playlist_menu, NULL, NULL,
+		                (GtkMenuPositionFunc) popup_menu_position,
+		                applet, event->button, event->time);
+        return TRUE;
+    }
+
     return FALSE;
 }
 
@@ -68,8 +130,32 @@ on_panel_applet_signal_move_focus_out_of_applet (PanelApplet     *panelapplet,
 static void
 hinedo_applet_setup_ui (HinedoApplet *applet)
 {
+    GtkWidget *menu;
+    GtkWidget *menu_item;
     GtkWidget *image;
+    GSList *group;
 
+    /* playlist popup menu */
+    menu = gtk_menu_new ();
+    applet->playlist_menu = GTK_MENU (menu);
+    g_object_ref (G_OBJECT (menu));
+
+    gtk_widget_show (menu);
+
+    /* the stop menu item */
+    menu_item = gtk_radio_menu_item_new_with_mnemonic (NULL, "Stop");
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
+
+    group = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (menu_item));
+    gtk_widget_show (menu_item);
+    g_signal_connect (G_OBJECT (menu_item), "group-changed",
+                      G_CALLBACK (on_radio_menu_item_signal_group_changed), applet);
+
+    /* separator, not shown at beginning. */
+    menu_item = gtk_separator_menu_item_new ();
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
+
+    /* applet icon */
     image = gtk_image_new_from_file (PACKAGE_DATA_DIR "/pixmaps/hinedo.png");
 	gtk_container_add (GTK_CONTAINER (applet), image);
     gtk_widget_show (image);
@@ -93,9 +179,6 @@ hinedo_applet_init (HinedoApplet *applet)
     /* panel applet */
     panel_applet_set_flags (PANEL_APPLET (applet), PANEL_APPLET_EXPAND_MINOR);
 
-    /* Set up properties menu */
-    //hinedo_applet_setup_menu (applet);
-
     /* Set up applet */
     hinedo_applet_setup_ui (applet);
 }
@@ -103,6 +186,8 @@ hinedo_applet_init (HinedoApplet *applet)
 static void
 hinedo_applet_finalize (HinedoApplet *applet)
 {
+    g_object_unref (G_OBJECT (applet->playlist_menu));
+
     G_OBJECT_CLASS (hinedo_applet_parent_class)->finalize (G_OBJECT (applet));
 }
 
@@ -205,6 +290,7 @@ applet_factory (HinedoApplet *applet,
     if (strcmp (iid, "OAFIID:hinedo-appletApplet") != 0)
         return FALSE;
 
+    /* add preference, about menu */
     setup_menu (applet);
 
     gtk_widget_show_all (GTK_WIDGET (applet));

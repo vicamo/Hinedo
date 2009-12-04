@@ -38,6 +38,8 @@ typedef struct _HinedoAppletClass HinedoAppletClass;
 struct _HinedoApplet
 {
     PanelApplet parent;
+
+    GtkMenu *playlist_menu;
 };
 
 struct _HinedoAppletClass
