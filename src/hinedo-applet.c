@@ -88,9 +88,9 @@ on_widget_signal_button_press_event (GtkWidget      *widget,
         && (event->type != GDK_2BUTTON_PRESS)
         && (event->type != GDK_3BUTTON_PRESS))
     {
-		gtk_menu_popup (applet->playlist_menu, NULL, NULL,
-		                (GtkMenuPositionFunc) popup_menu_position,
-		                applet, event->button, event->time);
+        gtk_menu_popup (applet->playlist_menu, NULL, NULL,
+                        (GtkMenuPositionFunc) popup_menu_position,
+                        applet, event->button, event->time);
         return TRUE;
     }
 
@@ -98,12 +98,41 @@ on_widget_signal_button_press_event (GtkWidget      *widget,
 }
 
 static void
-on_panel_applet_signal_change_background (PanelApplet              *panelapplet,
-                                          PanelAppletBackgroundType arg1,
-                                          GdkColor                 *arg2,
-                                          GdkPixmap                *arg3,
+on_panel_applet_signal_change_background (GtkWidget                *applet,
+                                          PanelAppletBackgroundType type,
+                                          GdkColor                 *color,
+                                          GdkPixmap                *pixmap,
                                           gpointer                  user_data)
 {
+    /* taken from the AlarmClockApplet */
+    GtkRcStyle *rc_style;
+    GtkStyle *style;
+
+    /* reset style */
+    gtk_widget_set_style (applet, NULL);
+    rc_style = gtk_rc_style_new ();
+    gtk_widget_modify_style (applet, rc_style);
+    gtk_rc_style_unref (rc_style);
+
+    switch (type)
+    {
+    case PANEL_COLOR_BACKGROUND:
+        gtk_widget_modify_bg (applet, GTK_STATE_NORMAL, color);
+        break;
+
+    case PANEL_PIXMAP_BACKGROUND:
+        style = gtk_style_copy (applet->style);
+        if (style->bg_pixmap[GTK_STATE_NORMAL])
+            g_object_unref (style->bg_pixmap[GTK_STATE_NORMAL]);
+        style->bg_pixmap[GTK_STATE_NORMAL] = g_object_ref (pixmap);
+        gtk_widget_set_style (applet, style);
+        g_object_unref (style);
+        break;
+
+    case PANEL_NO_BACKGROUND:
+    default:
+        break;
+    }
 }
 
 static void
@@ -157,7 +186,7 @@ hinedo_applet_setup_ui (HinedoApplet *applet)
 
     /* applet icon */
     image = gtk_image_new_from_file (PACKAGE_DATA_DIR "/pixmaps/hinedo.png");
-	gtk_container_add (GTK_CONTAINER (applet), image);
+    gtk_container_add (GTK_CONTAINER (applet), image);
     gtk_widget_show (image);
 
     /* connect signals */
