@@ -32,22 +32,31 @@ G_BEGIN_DECLS
 #define HINEDO_IS_APPLET_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), HINEDO_TYPE_APPLET))
 #define HINEDO_APPLET_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), HINEDO_TYPE_APPLET, HinedoAppletClass))
 
+#define HINEDO_APPLET_PROP_APPLET "applet"
+
 typedef struct _HinedoApplet      HinedoApplet;
 typedef struct _HinedoAppletClass HinedoAppletClass;
 
 struct _HinedoApplet
 {
-    PanelApplet parent;
+    GObject parent;
 
+    PanelApplet *applet;
     GtkMenu *playlist_menu;
 };
 
 struct _HinedoAppletClass
 {
-    PanelAppletClass parent_class;
+    GObjectClass parent_class;
 };
 
-GType hinedo_applet_get_type (void) G_GNUC_CONST;
+GType         hinedo_applet_get_type         (void) G_GNUC_CONST;
+HinedoApplet* hinedo_applet_new              (PanelApplet *applet);
+
+PanelApplet*  hinedo_applet_get_panel_applet (HinedoApplet *hinedo);
+
+gboolean      hinedo_applet_popup            (HinedoApplet   *hinedo,
+                                              GdkEventButton *event);
 
 G_END_DECLS
 

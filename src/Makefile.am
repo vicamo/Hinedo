@@ -15,7 +15,8 @@ AM_CFLAGS = \
 libexec_PROGRAMS = hinedo-applet
 
 hinedo_applet_SOURCES = \
-	hinedo-applet.c
+	hinedo-applet.c     \
+	main.c
 
 hinedo_applet_LDFLAGS = \
 	-Wl,--export-dynamic
