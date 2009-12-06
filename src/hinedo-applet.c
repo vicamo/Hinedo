@@ -54,15 +54,15 @@ static const gchar *selopt_item = "item_id";
 static const gchar *option_value = "ptionValu";
 static const gchar *option_display = "ptionDispla";
 static const HinedoHouse houses[] = {
-	{ 1, "Movie"},
-	{ 2, "Theater"},
-	{ 4, "Entertainment"},
-	{ 5, "Travel"},
-	{ 3, "Sport"},
-	{ 6, "News"},
-	{ 7, "Music"},
+    { 1, "Movie"},
+    { 2, "Theater"},
+    { 4, "Entertainment"},
+    { 5, "Travel"},
+    { 3, "Sport"},
+    { 6, "News"},
+    { 7, "Music"},
     { 8, "Radio"},
-	{12, "Optical Generation"}
+    {12, "Optical Generation"}
 };
 
 G_DEFINE_TYPE (HinedoApplet, hinedo_applet, G_TYPE_OBJECT);
@@ -286,7 +286,7 @@ on_category_menu_json_foreach_callback (JsonArray              *array,
 
     if (((id_node = json_object_get_member (object, option_value)) == NULL) ||
         ((name_node = json_object_get_member (object, option_display)) == NULL))
-	{
+    {
         return;
     }
 
@@ -337,7 +337,7 @@ on_category_menu_soup_query_callback (HinedoApplet *hinedo,
         hinedo_applet_show_soup_error (message);
     }
     else
-	{
+    {
         HinedoJsonCallbackData data;
         SoupBuffer *buffer;
         gchar *str;
@@ -360,11 +360,11 @@ on_category_menu_soup_query_callback (HinedoApplet *hinedo,
 
         g_free (str);
         soup_buffer_free (buffer);
-	}
+    }
 
     list = gtk_container_get_children (GTK_CONTAINER (menu));
     if (!list)
-	{
+    {
         GtkWidget *menu_item;
 
         /* append a item to show no contents available */
@@ -373,9 +373,9 @@ on_category_menu_soup_query_callback (HinedoApplet *hinedo,
         gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
     }
     else
-	{
+    {
         g_list_free (list);
-	}
+    }
 }
 
 static void
@@ -433,7 +433,7 @@ on_house_menu_json_foreach_callback (JsonArray              *array,
 
     if (((id_node = json_object_get_member (object, option_value)) == NULL) ||
         ((name_node = json_object_get_member (object, option_display)) == NULL))
-	{
+    {
         return;
     }
 
@@ -476,7 +476,7 @@ on_house_menu_soup_query_callback (HinedoApplet *hinedo,
         hinedo_applet_show_soup_error (message);
     }
     else
-	{
+    {
         HinedoJsonCallbackData data;
         SoupBuffer *buffer;
         gchar *str;
@@ -499,11 +499,11 @@ on_house_menu_soup_query_callback (HinedoApplet *hinedo,
 
         g_free (str);
         soup_buffer_free (buffer);
-	}
+    }
 
     list = gtk_container_get_children (GTK_CONTAINER (menu));
     if (!list)
-	{
+    {
         GtkWidget *menu_item;
 
         /* append a item to show no contents available */
@@ -512,9 +512,9 @@ on_house_menu_soup_query_callback (HinedoApplet *hinedo,
         gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
     }
     else
-	{
+    {
         g_list_free (list);
-	}
+    }
 }
 
 static void
