@@ -50,8 +50,8 @@ static const gchar *selopt_baseurl = \
 static const gchar *selopt_house = "house_id";
 static const gchar *selopt_category = "scat_id";
 static const gchar *selopt_item = "item_id";
-static const gchar *option_value = "optionValue";
-static const gchar *option_display = "optionDisplay";
+static const gchar *option_value = "ptionValu";
+static const gchar *option_display = "ptionDispla";
 static const HinedoHouse houses[] = {
 	{ 1, "Movie"},
 	{ 2, "Theater"},
@@ -65,6 +65,30 @@ static const HinedoHouse houses[] = {
 };
 
 G_DEFINE_TYPE (HinedoApplet, hinedo_applet, G_TYPE_OBJECT);
+
+static void
+hinedo_applet_fix_hichannel_json_string (gchar *haystack)
+{
+    static const gchar *value = "optionValue";
+    static const gchar *display = "optionDisplay";
+    const gint vlen = strlen (value);
+    const gint dlen = strlen (display);
+    gchar *str, *s;
+
+    str = haystack;
+    while ((s = strstr (str, value)) != NULL)
+    {
+        *s = '\''; *(s + vlen - 1) = '\'';
+        str += vlen;
+    }
+
+    str = haystack;
+    while ((s = strstr (str, display)) != NULL)
+    {
+        *s = '\''; *(s + dlen - 1) = '\'';
+        str += dlen;
+    }
+}
 
 /**
  * @name Error dialogs
@@ -300,7 +324,6 @@ on_category_menu_soup_query_callback (HinedoApplet *hinedo,
                                       SoupMessage  *message,
                                       GtkMenu      *menu)
 {
-    static const gchar *test_scat1 = "[ {'optionValue':'1001','optionDisplay':'Bravo FM913 台北都會休閒音樂台'}, {'optionValue':'308','optionDisplay':'KISS RADIO 網路音樂台'}, {'optionValue':'156','optionDisplay':'KISS RADIO 大眾廣播電台'}, {'optionValue':'255','optionDisplay':'KISS RADIO 台南知音廣播'}, {'optionValue':'256','optionDisplay':'KISS RADIO 大苗栗廣播'}, {'optionValue':'258','optionDisplay':'KISS RADIO 南投廣播'}, {'optionValue':'206','optionDisplay':'中廣音樂網i radio'}, {'optionValue':'205','optionDisplay':'中廣流行網 i like'}, {'optionValue':'222','optionDisplay':'HitFM聯播網 北部'}, {'optionValue':'88','optionDisplay':'HitFM聯播網 中部'}, {'optionValue':'90','optionDisplay':'HitFM聯播網 南部'}, {'optionValue':'370','optionDisplay':'POP Radio 917台北流行音樂電台'}, {'optionValue':'228','optionDisplay':'台北愛樂'}, {'optionValue':'294','optionDisplay':'奇美古典音樂網'}, {'optionValue':'212','optionDisplay':'BestRadio 台北好事989'}, {'optionValue':'213','optionDisplay':'BestRadio 高雄港都983'}, {'optionValue':'211','optionDisplay':'BestRadio 台中好事903'}, {'optionValue':'303','optionDisplay':'BestRadio 花蓮好事935'}, {'optionValue':'248','optionDisplay':'Apple line 蘋果線上'}, {'optionValue':'321','optionDisplay':'ASIAFM衛星音樂台'}, {'optionValue':'357','optionDisplay':'Flyradio飛揚調頻895'}, {'optionValue':'340','optionDisplay':'佳音聖樂網 CCM'}, {'optionValue':'338','optionDisplay':'全國廣播音樂網'}, {'optionValue':'313','optionDisplay':'台灣之音-音樂'}, {'optionValue':'289','optionDisplay':'太陽電台'} ] ";
     GList *list;
 
     /* remove the retrieving item */
@@ -316,25 +339,25 @@ on_category_menu_soup_query_callback (HinedoApplet *hinedo,
 	{
         HinedoJsonCallbackData data;
         SoupBuffer *buffer;
+        gchar *str;
         GError *error;
 
         buffer = soup_message_body_flatten (message->response_body);
+        str = strdup (buffer->data);
         data.hinedo = hinedo;
         data.menu = menu;
         error = NULL;
 
+        hinedo_applet_fix_hichannel_json_string (str);
         if (!hinedo_applet_json_foreach (
-#if 0
-                buffer->data, buffer->length,
-#else
-                test_scat1, strlen (test_scat1),
-#endif
+                str, strlen (str),
                 (JsonArrayForeach) on_category_menu_json_foreach_callback,
                 &data, &error))
         {
             hinedo_applet_show_error (error);
         }
 
+        g_free (str);
         soup_buffer_free (buffer);
 	}
 
@@ -440,7 +463,6 @@ on_house_menu_soup_query_callback (HinedoApplet *hinedo,
                                    SoupMessage  *message,
                                    GtkMenu      *menu)
 {
-    static const gchar *test_house8 = "[ {'optionValue':'1','optionDisplay':'音樂'}, {'optionValue':'4','optionDisplay':'生活'}, {'optionValue':'0','optionDisplay':'新聞'}, {'optionValue':'7','optionDisplay':'綜合'}, {'optionValue':'3','optionDisplay':'外語'}, {'optionValue':'5','optionDisplay':'多元文化'}, {'optionValue':'6','optionDisplay':'交通'} ]";
     GList *list;
 
     /* remove the retrieving item */
@@ -456,25 +478,25 @@ on_house_menu_soup_query_callback (HinedoApplet *hinedo,
 	{
         HinedoJsonCallbackData data;
         SoupBuffer *buffer;
+        gchar *str;
         GError *error;
 
         buffer = soup_message_body_flatten (message->response_body);
+        str = strdup (buffer->data);
         data.hinedo = hinedo;
         data.menu = menu;
         error = NULL;
 
+        hinedo_applet_fix_hichannel_json_string (str);
         if (!hinedo_applet_json_foreach (
-#if 0
-                buffer->data, buffer->length,
-#else
-                test_house8, strlen (test_house8),
-#endif
+                str, strlen (str),
                 (JsonArrayForeach) on_house_menu_json_foreach_callback,
                 &data, &error))
         {
             hinedo_applet_show_error (error);
         }
 
+        g_free (str);
         soup_buffer_free (buffer);
 	}
 
