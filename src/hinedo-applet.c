@@ -21,6 +21,7 @@
 #  include "config.h"
 #endif
 
+#include <stdlib.h>
 #include <string.h>
 #include <libsoup/soup.h>
 #include <json-glib/json-glib.h>
@@ -309,7 +310,7 @@ on_category_menu_json_foreach_callback (JsonArray              *array,
                                           selopt_category));
     g_object_set_data (G_OBJECT (menu_item),
                        selopt_item,
-                       GINT_TO_POINTER (json_node_get_int (id_node)));
+                       GINT_TO_POINTER (atoi (json_node_get_string (id_node))));
 
     /* automatic query items */
     g_signal_connect (G_OBJECT (menu_item), "group-changed",
@@ -449,7 +450,7 @@ on_house_menu_json_foreach_callback (JsonArray              *array,
                                           selopt_house));
     g_object_set_data (G_OBJECT (menu),
                        selopt_category,
-                       GINT_TO_POINTER (json_node_get_int (id_node)));
+                       GINT_TO_POINTER (atoi (json_node_get_string (id_node))));
 
     /* automatic query items */
     g_signal_connect (G_OBJECT (menu), "show",
