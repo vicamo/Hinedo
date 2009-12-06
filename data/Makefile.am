@@ -6,7 +6,7 @@ ACLOCAL_AMFLAGS = \
 
 iconsdir = $(datadir)/pixmaps
 icons_DATA = \
-	hinedo.png
+	hinedo-applet.png
 
 EXTRA_DIST = \
 	$(icons_DATA)

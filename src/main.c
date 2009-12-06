@@ -61,7 +61,7 @@ on_panel_applet_callback_about (BonoboUIComponent *component,
                           "authors",        authors,
                           "documenters",    documenters,
                           "artists",        artists,
-                          "logo-icon-name", "hinedo",
+                          "logo-icon-name", "hinedo-applet",
                           "wrap-license",   TRUE,
                           "license",
                           "This program is free software; you can redistribute "
@@ -186,7 +186,7 @@ applet_factory (PanelApplet *applet,
     panel_applet_set_flags (PANEL_APPLET (applet), PANEL_APPLET_EXPAND_MINOR);
 
     /* applet icon */
-    image = gtk_image_new_from_file (PACKAGE_DATA_DIR "/pixmaps/hinedo.png");
+    image = gtk_image_new_from_file (PACKAGE_DATA_DIR "/pixmaps/hinedo-applet.png");
     gtk_container_add (GTK_CONTAINER (applet), image);
 
     /* add preference, about menu */
