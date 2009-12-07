@@ -187,9 +187,7 @@ hinedo_applet_soup_query (HinedoApplet      *hinedo,
     data->hinedo = hinedo;
     data->callback = callback;
     data->user_data = user_data;
-
     data->message = soup_message_new (SOUP_METHOD_GET, url);
-    g_object_ref (G_OBJECT (data->message));
 
     soup_session_queue_message (
             hinedo->session, data->message,
@@ -219,9 +217,6 @@ hinedo_applet_json_foreach (const gchar     *data,
     parser = json_parser_new ();
     result = FALSE;
 
-    if (*error)
-        *error = NULL;
-
     if (json_parser_load_from_data (parser, data, length, error))
     {
         JsonNode *root;
@@ -231,9 +226,8 @@ hinedo_applet_json_foreach (const gchar     *data,
         {
             JsonArray *array;
 
-            array = json_node_dup_array (root);
+            array = json_node_get_array (root);
             json_array_foreach_element (array, func, user_data);
-            g_object_unref (G_OBJECT (array));
 
             result = TRUE;
         }
@@ -346,6 +340,8 @@ on_play_radio_soup_query_callback (HinedoApplet *hinedo,
     if (message->status_code != SOUP_STATUS_OK)
     {
         hinedo_applet_show_soup_error (message);
+
+        g_object_unref (menu_item);
         return;
     }
 
@@ -379,6 +375,7 @@ on_play_radio_soup_query_callback (HinedoApplet *hinedo,
     }
 
     soup_buffer_free (buffer);
+    g_object_unref (menu_item);
 }
 
 static gboolean
@@ -401,7 +398,7 @@ hinedo_applet_play_radio (HinedoApplet *hinedo,
         hinedo_applet_soup_query (
                 hinedo, uri,
                 (HinedoSoupCallback)on_play_radio_soup_query_callback,
-                menu_item);
+                g_object_ref (menu_item));
 
         g_free (uri);
     }
@@ -551,6 +548,7 @@ on_menu_soup_query_callback (HinedoApplet           *hinedo,
         g_list_free (list);
     }
 
+    g_object_unref (G_OBJECT (data->menu));
     g_slice_free (HinedoJsonCallbackData, data);
 }
 
@@ -582,7 +580,7 @@ on_category_menu_signal_show (GtkMenu      *menu,
 
     data = g_slice_new0 (HinedoJsonCallbackData);
     data->hinedo = hinedo;
-    data->menu = menu;
+    data->menu = (GtkMenu*) g_object_ref (G_OBJECT (menu));
     data->foreach = (JsonArrayForeach) on_category_menu_json_foreach_callback;
 
     hinedo_applet_soup_query (
@@ -663,7 +661,7 @@ on_house_menu_signal_show (GtkMenu      *menu,
 
     data = g_slice_new0 (HinedoJsonCallbackData);
     data->hinedo = hinedo;
-    data->menu = menu;
+    data->menu = (GtkMenu*) g_object_ref (G_OBJECT (menu));
     data->foreach = (JsonArrayForeach) on_house_menu_json_foreach_callback;
 
     hinedo_applet_soup_query (
@@ -684,7 +682,6 @@ hinedo_applet_setup_ui (HinedoApplet *hinedo)
 
     /* playlist popup menu */
     hinedo->playlist_menu = GTK_MENU (gtk_menu_new ());
-    g_object_ref (G_OBJECT (hinedo->playlist_menu));
 
     /* the stop menu item */
     menu_item = gtk_radio_menu_item_new_with_mnemonic (NULL, "Stop");
@@ -731,8 +728,7 @@ hinedo_applet_set_property (GObject      *object,
     switch (property_id)
     {
     case PROP_APPLET:
-        hinedo->applet = PANEL_APPLET (g_value_get_object (value));
-        g_object_ref (G_OBJECT (hinedo->applet));
+        hinedo->applet = PANEL_APPLET (g_value_dup_object (value));
         g_signal_connect (G_OBJECT (hinedo->applet), "unrealize",
                           G_CALLBACK (g_object_unref), hinedo);
         break;
@@ -775,7 +771,6 @@ hinedo_applet_init (HinedoApplet *hinedo)
 
     /* soup session */
     hinedo->session = soup_session_async_new ();
-    g_object_ref (G_OBJECT (hinedo->session));
 #ifdef HAVE_LIBSOUP_GNOME
     soup_session_add_feature_by_type (hinedo->session,
                                       SOUP_TYPE_PROXY_RESOLVER_GNOME);
@@ -885,7 +880,8 @@ on_popup_callback_menu_position (GtkMenu   *menu,
         break;
 
     default:
-            g_assert_not_reached ();
+        g_assert_not_reached ();
+        break;
     }
 
     *x = menu_xpos;
