@@ -23,6 +23,7 @@
 #include <gtk/gtk.h>
 #include <panel-applet.h>
 #include <libsoup/soup.h>
+#include <gst/gst.h>
 
 G_BEGIN_DECLS
 
@@ -46,6 +47,8 @@ struct _HinedoApplet
     GtkMenu *playlist_menu;
     GSList *playlist_group;
     SoupSession *session;
+    GstElement *pipeline;
+    guint watch;
 };
 
 struct _HinedoAppletClass

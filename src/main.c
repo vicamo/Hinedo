@@ -22,6 +22,7 @@
 #endif
 
 #include <string.h>
+#include <gst/gst.h>
 
 #include "hinedo-applet.h"
 
@@ -179,6 +180,8 @@ applet_factory (PanelApplet *applet,
 
     if (strcmp (iid, "OAFIID:hinedo-appletApplet") != 0)
         return FALSE;
+
+    gst_init (NULL, NULL);
 
     hinedo = hinedo_applet_new (applet);
 

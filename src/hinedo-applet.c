@@ -40,30 +40,17 @@ enum
     _LAST_PROP
 };
 
-typedef struct _HinedoHouse
-{
-    gint id;
-    gchar *name;
-} HinedoHouse;
-
 static const gchar *selopt_baseurl = \
         "http://hichannel.hinet.net/ajax/house/selectOptions.jsp";
 static const gchar *selopt_house = "house_id";
 static const gchar *selopt_category = "scat_id";
-static const gchar *selopt_item = "item_id";
 static const gchar *option_value = "ptionValu";
 static const gchar *option_display = "ptionDispla";
-static const HinedoHouse houses[] = {
-    { 1, "Movie"},
-    { 2, "Theater"},
-    { 4, "Entertainment"},
-    { 5, "Travel"},
-    { 3, "Sport"},
-    { 6, "News"},
-    { 7, "Music"},
-    { 8, "Radio"},
-    {12, "Optical Generation"}
-};
+
+static const gchar *hkey = "hinedo_house_id";
+static const gchar *ckey = "hinedo_category_id";
+static const gchar *mkey = "hinedo_media_id";
+static const gchar *ukey = "hinedo_uri";
 
 G_DEFINE_TYPE (HinedoApplet, hinedo_applet, G_TYPE_OBJECT);
 
@@ -97,7 +84,7 @@ hinedo_applet_fix_hichannel_json_string (gchar *haystack)
 /*@{*/
 
 static void
-hinedo_applet_show_error (GError *error)
+hinedo_applet_show_string (const gchar *message)
 {
     GtkWidget *dialog;
 
@@ -105,10 +92,16 @@ hinedo_applet_show_error (GError *error)
                                      GTK_DIALOG_DESTROY_WITH_PARENT,
                                      GTK_MESSAGE_ERROR,
                                      GTK_BUTTONS_CLOSE,
-                                     "%s", error->message);
+                                     "%s", message);
 
     gtk_dialog_run (GTK_DIALOG (dialog));
     gtk_widget_destroy (dialog);
+}
+
+static void
+hinedo_applet_show_error (GError *error)
+{
+    hinedo_applet_show_string (error->message);
 }
 
 static void
@@ -253,11 +246,201 @@ hinedo_applet_json_foreach (const gchar     *data,
 
 /*@}*/
 
-static void
-on_radio_menu_item_signal_group_changed (GtkRadioMenuItem *menu_item,
-                                         HinedoApplet     *applet)
+/**
+ * @name Play media streams
+ */
+/*@{*/
+
+static gboolean
+on_gst_bus_watch_callback (GstBus       *bus,
+                           GstMessage   *message,
+                           HinedoApplet *hinedo)
 {
+    GError *error;
+
+    switch (GST_MESSAGE_TYPE (message))
+    {
+    case GST_MESSAGE_EOS:
+        gst_element_set_state (hinedo->pipeline, GST_STATE_NULL);
+        break;
+
+    case GST_MESSAGE_ERROR:
+        gst_message_parse_error (message, &error, NULL);
+
+        hinedo_applet_show_error (error);
+        g_error_free (error);
+
+        gst_element_set_state (hinedo->pipeline, GST_STATE_NULL);
+        break;
+
+    default:
+        break;
+    }
+
+    return TRUE;
 }
+
+static void
+hinedo_applet_play (HinedoApplet *hinedo,
+                    const gchar  *uri)
+{
+    g_object_set (G_OBJECT (hinedo->pipeline), "uri", uri, NULL);
+    gst_element_set_state (GST_ELEMENT (hinedo->pipeline), GST_STATE_PLAYING);
+}
+
+static void
+hinedo_applet_stop (HinedoApplet *hinedo)
+{
+    gst_element_set_state (hinedo->pipeline, GST_STATE_NULL);
+}
+
+/*@}*/
+
+/**
+ * @name Media playback prepare
+ */
+/*@{*/
+
+typedef gboolean (*HinedoPlayFunc) (HinedoApplet *hinedo,
+                                    GObject      *menu_item,
+                                    gint          house_id,
+                                    GError      **error);
+
+typedef struct _HinedoHouse
+{
+    gint           id;
+    gchar         *name;
+    HinedoPlayFunc play_func;
+} HinedoHouse;
+
+static gboolean
+hinedo_applet_play_radio (HinedoApplet *hinedo,
+                          GObject      *menu_item,
+                          gint          house_id,
+                          GError      **error);
+
+static const HinedoHouse houses[] = {
+    { 1, "Movie",              NULL},
+    { 2, "Theater",            NULL},
+    { 4, "Entertainment",      NULL},
+    { 5, "Travel",             NULL},
+    { 3, "Sport",              NULL},
+    { 6, "News",               NULL},
+    { 7, "Music",              NULL},
+    { 8, "Radio",              hinedo_applet_play_radio},
+    {12, "Optical Generation", NULL}
+};
+
+static const gchar *radio_murl_format = \
+        "http://hichannel.hinet.net/player/radio/index.jsp?radio_id=%d";
+
+static void
+on_play_radio_soup_query_callback (HinedoApplet *hinedo,
+                                   SoupMessage  *message,
+                                   GObject      *menu_item)
+{
+    SoupBuffer *buffer;
+    GRegex *regex;
+    GError *error;
+
+    if (message->status_code != SOUP_STATUS_OK)
+    {
+        hinedo_applet_show_soup_error (message);
+        return;
+    }
+
+    buffer = soup_message_body_flatten (message->response_body);
+    error = NULL;
+
+    /* "stream_group.jsp?data=mms://bcr.media.hinet.net/RA000042&id=RADIO:308" */
+    regex = g_regex_new ("mms://[^&]+", 0, 0, &error);
+    if (!regex)
+    {
+        hinedo_applet_show_error (error);
+        g_error_free (error);
+    }
+    else
+    {
+        GMatchInfo *match_info;
+
+        g_regex_match (regex, buffer->data, 0, &match_info);
+        if (g_match_info_matches (match_info))
+        {
+            gchar *uri;
+
+            uri = g_match_info_fetch (match_info, 0);
+            hinedo_applet_play (hinedo, uri);
+
+            g_object_set_data_full (menu_item, ukey, uri, g_free);
+        }
+
+        g_match_info_free (match_info);
+        g_regex_unref (regex);
+    }
+
+    soup_buffer_free (buffer);
+}
+
+static gboolean
+hinedo_applet_play_radio (HinedoApplet *hinedo,
+                          GObject      *menu_item,
+                          gint          house_id,
+                          GError      **error)
+{
+    gchar *uri;
+
+    if ((uri = (gchar*) g_object_get_data (menu_item, ukey)) != NULL)
+        hinedo_applet_play (hinedo, uri);
+    else
+    {
+        gint media_id;
+
+        media_id = GPOINTER_TO_INT (g_object_get_data (menu_item, mkey));
+        uri = g_strdup_printf (radio_murl_format, media_id);
+
+        hinedo_applet_soup_query (
+                hinedo, uri,
+                (HinedoSoupCallback)on_play_radio_soup_query_callback,
+                menu_item);
+
+        g_free (uri);
+    }
+
+    return TRUE;
+}
+
+static void
+on_radio_menu_item_signal_toggled (GObject      *menu_item,
+                                   HinedoApplet *hinedo)
+{
+    GError *error;
+    gint house_id;
+    gint ii;
+
+    if (!gtk_check_menu_item_get_active (GTK_CHECK_MENU_ITEM (menu_item)))
+        return;
+
+    hinedo_applet_stop (hinedo);
+
+    house_id = GPOINTER_TO_INT (g_object_get_data (menu_item, hkey));
+    error = NULL;
+
+    for (ii = 0; ii < G_N_ELEMENTS (houses); ++ii)
+    {
+        if ((houses[ii].id == house_id) && houses[ii].play_func)
+        {
+            if (!houses[ii].play_func (hinedo, menu_item, house_id, &error))
+            {
+                hinedo_applet_show_error (error);
+                g_error_free (error);
+            }
+
+            break;
+        }
+    }
+}
+
+/*@}*/
 
 /**
  * @name Category menu update
@@ -301,21 +484,16 @@ on_category_menu_json_foreach_callback (JsonArray              *array,
     data->hinedo->playlist_group = group;
 
     /* remember house & category & item id */
-    g_object_set_data (G_OBJECT (menu_item),
-                       selopt_house,
-                       g_object_get_data (G_OBJECT (data->menu),
-                                          selopt_house));
-    g_object_set_data (G_OBJECT (menu_item),
-                       selopt_category,
-                       g_object_get_data (G_OBJECT (data->menu),
-                                          selopt_category));
-    g_object_set_data (G_OBJECT (menu_item),
-                       selopt_item,
+    g_object_set_data (G_OBJECT (menu_item), hkey,
+                       g_object_get_data (G_OBJECT (data->menu), hkey));
+    g_object_set_data (G_OBJECT (menu_item), ckey,
+                       g_object_get_data (G_OBJECT (data->menu), ckey));
+    g_object_set_data (G_OBJECT (menu_item), mkey,
                        GINT_TO_POINTER (atoi (json_node_get_string (id_node))));
 
     /* automatic query items */
-    g_signal_connect (G_OBJECT (menu_item), "group-changed",
-                      G_CALLBACK (on_radio_menu_item_signal_group_changed),
+    g_signal_connect (G_OBJECT (menu_item), "toggled",
+                      G_CALLBACK (on_radio_menu_item_signal_toggled),
                       data->hinedo);
 
     gtk_widget_show (menu_item);
@@ -396,8 +574,8 @@ on_category_menu_signal_show (GtkMenu      *menu,
     gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
 
     /* query hinet jsp */
-    house_data = g_object_get_data (G_OBJECT (menu), selopt_house);
-    category_data = g_object_get_data (G_OBJECT (menu), selopt_category);
+    house_data = g_object_get_data (G_OBJECT (menu), hkey);
+    category_data = g_object_get_data (G_OBJECT (menu), ckey);
     url = g_strdup_printf ("%s?%s=%d&%s=%d", selopt_baseurl,
                            selopt_house, GPOINTER_TO_INT (house_data),
                            selopt_category, GPOINTER_TO_INT (category_data));
@@ -448,12 +626,9 @@ on_house_menu_json_foreach_callback (JsonArray              *array,
     gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item), menu);
 
     /* remember house & category id */
-    g_object_set_data (G_OBJECT (menu),
-                       selopt_house,
-                       g_object_get_data (G_OBJECT (data->menu),
-                                          selopt_house));
-    g_object_set_data (G_OBJECT (menu),
-                       selopt_category,
+    g_object_set_data (G_OBJECT (menu), hkey,
+                       g_object_get_data (G_OBJECT (data->menu), hkey));
+    g_object_set_data (G_OBJECT (menu), ckey,
                        GINT_TO_POINTER (atoi (json_node_get_string (id_node))));
 
     /* automatic query items */
@@ -482,7 +657,7 @@ on_house_menu_signal_show (GtkMenu      *menu,
     gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
 
     /* query hinet jsp */
-    house_data = g_object_get_data (G_OBJECT (menu), selopt_house);
+    house_data = g_object_get_data (G_OBJECT (menu), hkey);
     url = g_strdup_printf ("%s?%s=%d", selopt_baseurl,
                            selopt_house, GPOINTER_TO_INT (house_data));
 
@@ -516,8 +691,8 @@ hinedo_applet_setup_ui (HinedoApplet *hinedo)
     gtk_menu_shell_append (GTK_MENU_SHELL (hinedo->playlist_menu), menu_item);
 
     hinedo->playlist_group = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (menu_item));
-    g_signal_connect (G_OBJECT (menu_item), "group-changed",
-                      G_CALLBACK (on_radio_menu_item_signal_group_changed),
+    g_signal_connect (G_OBJECT (menu_item), "toggled",
+                      G_CALLBACK (on_radio_menu_item_signal_toggled),
                       hinedo);
 
     /* separator */
@@ -535,7 +710,7 @@ hinedo_applet_setup_ui (HinedoApplet *hinedo)
 
         /* remember house id */
         g_object_set_data (G_OBJECT (menu),
-                           selopt_house, GINT_TO_POINTER (houses[ii].id));
+                           hkey, GINT_TO_POINTER (houses[ii].id));
 
         /* automatic query house categories */
         g_signal_connect (G_OBJECT (menu), "show",
@@ -593,6 +768,8 @@ hinedo_applet_get_property (GObject    *object,
 static void
 hinedo_applet_init (HinedoApplet *hinedo)
 {
+    GstBus *bus;
+
     /* Set up applet */
     hinedo_applet_setup_ui (hinedo);
 
@@ -603,11 +780,20 @@ hinedo_applet_init (HinedoApplet *hinedo)
     soup_session_add_feature_by_type (hinedo->session,
                                       SOUP_TYPE_PROXY_RESOLVER_GNOME);
 #endif
+
+    /* GStreamer */
+    hinedo->pipeline = gst_element_factory_make ("playbin", "player");
+
+    bus = gst_pipeline_get_bus (GST_PIPELINE (hinedo->pipeline));
+    hinedo->watch = gst_bus_add_watch (
+            bus, (GstBusFunc) on_gst_bus_watch_callback, hinedo);
+    gst_object_unref (bus);
 }
 
 static void
 hinedo_applet_finalize (HinedoApplet *hinedo)
 {
+    gst_object_unref (GST_OBJECT (hinedo->pipeline));
     g_object_unref (G_OBJECT (hinedo->session));
     g_object_unref (G_OBJECT (hinedo->playlist_menu));
     g_object_unref (G_OBJECT (hinedo->applet));
