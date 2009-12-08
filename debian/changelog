@@ -1,20 +1,5 @@
-hinedo (0.4-1ubuntu1) gutsy; urgency=low
-
-  * Rewrite scripts with python
-  * Automatic online update is supported
-
- -- PCMan <pcman@desktop>  Sun, 18 Nov 2007 19:17:19 +0800
-
-hinedo (0.3-1ubuntu1) gutsy; urgency=low
-
-  * Improve perl scripts used to parsing html.
-  * Remove useless images from menu and replace them with text.
-
- -- PCMan <pcman.tw@gmail.com>  Sat, 06 Oct 2007 19:43:25 +0800
-
-hinedo (0.2-1) unstable; urgency=low
+hinedo-applet (0.9-1) unstable; urgency=low
 
   * Initial release
 
- -- PCMan <pcman.tw@gmail.com>  Sat,  9 Jun 2007 23:42:41 +0800
-
+ -- Vicamo Yang <vicamo@gmail.com>  Tue, 08 Dec 2009 20:31:59 +0800
