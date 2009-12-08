@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: hinedo-applet 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2009-12-08 19:45+0800\n"
-"PO-Revision-Date: 2009-12-08 19:48+0800\n"
+"PO-Revision-Date: 2009-12-09 01:16+0800\n"
 "Last-Translator: Vicamo Yang <vicamo@gmail.com>\n"
 "Language-Team: Chinese (traditional) <>\n"
 "MIME-Version: 1.0\n"
@@ -91,7 +91,7 @@ msgstr "關於(_A)"
 
 #: ../src/applet-menu.xml.h:2
 msgid "_Preferences"
-msgstr "設定(_P)"
+msgstr "偏好設定(_P)"
 
 #~ msgid "About "
 #~ msgstr "關於"
