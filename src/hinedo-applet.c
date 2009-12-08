@@ -178,6 +178,7 @@ on_soup_query_callback_timeout (HinedoSoupCallbackData *data)
 static void
 hinedo_applet_soup_query (HinedoApplet      *hinedo,
                           const gchar       *url,
+                          const gchar       *referer,
                           HinedoSoupCallback callback,
                           gpointer           user_data)
 {
@@ -188,6 +189,12 @@ hinedo_applet_soup_query (HinedoApplet      *hinedo,
     data->callback = callback;
     data->user_data = user_data;
     data->message = soup_message_new (SOUP_METHOD_GET, url);
+
+    if (referer)
+    {
+        soup_message_headers_append (data->message->request_headers,
+                                     "Referer", referer);
+    }
 
     soup_session_queue_message (
             hinedo->session, data->message,
@@ -308,6 +315,12 @@ typedef struct _HinedoHouse
 } HinedoHouse;
 
 static gboolean
+hinedo_applet_play_video (HinedoApplet *hinedo,
+                          GObject      *menu_item,
+                          gint          house_id,
+                          GError      **error);
+
+static gboolean
 hinedo_applet_play_radio (HinedoApplet *hinedo,
                           GObject      *menu_item,
                           gint          house_id,
@@ -315,23 +328,20 @@ hinedo_applet_play_radio (HinedoApplet *hinedo,
 
 static const HinedoHouse houses[] = {
     { 1, N_("Movie"),              NULL},
-    { 2, N_("Theater"),            NULL},
-    { 4, N_("Entertainment"),      NULL},
-    { 5, N_("Travel"),             NULL},
-    { 3, N_("Sport"),              NULL},
-    { 6, N_("News"),               NULL},
-    { 7, N_("Music"),              NULL},
+    { 2, N_("Theater"),            hinedo_applet_play_video},
+    { 4, N_("Entertainment"),      hinedo_applet_play_video},
+    { 5, N_("Travel"),             hinedo_applet_play_video},
+    { 3, N_("Sport"),              hinedo_applet_play_video},
+    { 6, N_("News"),               hinedo_applet_play_video},
+    { 7, N_("Music"),              hinedo_applet_play_video},
     { 8, N_("Radio"),              hinedo_applet_play_radio},
     {12, N_("Optical Generation"), NULL}
 };
 
-static const gchar *radio_murl_format = \
-        "http://hichannel.hinet.net/player/radio/index.jsp?radio_id=%d";
-
 static void
-on_play_radio_soup_query_callback (HinedoApplet *hinedo,
-                                   SoupMessage  *message,
-                                   GObject      *menu_item)
+on_play_mms_soup_query_callback (HinedoApplet *hinedo,
+                                 SoupMessage  *message,
+                                 GObject      *menu_item)
 {
     SoupBuffer *buffer;
     GRegex *regex;
@@ -378,6 +388,39 @@ on_play_radio_soup_query_callback (HinedoApplet *hinedo,
     g_object_unref (menu_item);
 }
 
+static const gchar *video_murl_format = \
+        "http://hichannel.hinet.net/player/tPlayer_vod.jsp?id=%d";
+static const gchar *video_referer_format = \
+        "http://hichannel.hinet.net/media.do?id=%d";
+
+static gboolean
+hinedo_applet_play_video (HinedoApplet *hinedo,
+                          GObject      *menu_item,
+                          gint          house_id,
+                          GError      **error)
+{
+    gint media_id;
+    gchar *uri;
+    gchar *referer;
+
+    media_id = GPOINTER_TO_INT (g_object_get_data (menu_item, mkey));
+    uri = g_strdup_printf (video_murl_format, media_id);
+    referer = g_strdup_printf (video_referer_format, media_id);
+
+    hinedo_applet_soup_query (
+            hinedo, uri, referer,
+            (HinedoSoupCallback)on_play_mms_soup_query_callback,
+            g_object_ref (menu_item));
+
+    g_free (referer);
+    g_free (uri);
+
+    return TRUE;
+}
+
+static const gchar *radio_murl_format = \
+        "http://hichannel.hinet.net/player/radio/index.jsp?radio_id=%d";
+
 static gboolean
 hinedo_applet_play_radio (HinedoApplet *hinedo,
                           GObject      *menu_item,
@@ -396,8 +439,8 @@ hinedo_applet_play_radio (HinedoApplet *hinedo,
         uri = g_strdup_printf (radio_murl_format, media_id);
 
         hinedo_applet_soup_query (
-                hinedo, uri,
-                (HinedoSoupCallback)on_play_radio_soup_query_callback,
+                hinedo, uri, NULL,
+                (HinedoSoupCallback)on_play_mms_soup_query_callback,
                 g_object_ref (menu_item));
 
         g_free (uri);
@@ -584,7 +627,7 @@ on_category_menu_signal_show (GtkMenu      *menu,
     data->foreach = (JsonArrayForeach) on_category_menu_json_foreach_callback;
 
     hinedo_applet_soup_query (
-            hinedo, url,
+            hinedo, url, NULL,
             (HinedoSoupCallback) on_menu_soup_query_callback, data);
 
     g_free (url);
@@ -665,7 +708,7 @@ on_house_menu_signal_show (GtkMenu      *menu,
     data->foreach = (JsonArrayForeach) on_house_menu_json_foreach_callback;
 
     hinedo_applet_soup_query (
-            hinedo, url,
+            hinedo, url, NULL,
             (HinedoSoupCallback) on_menu_soup_query_callback, data);
 
     g_free (url);
