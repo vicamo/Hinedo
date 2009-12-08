@@ -27,10 +27,16 @@ serverdir       = $(libdir)/bonobo/servers
 server_in_files = hinedo-applet.server.in
 server_DATA     = $(server_in_files:.server.in=.server)
 
+@INTLTOOL_SERVER_RULE@
+
+uidir = $(datadir)/hinedo-applet/ui
+ui_DATA = applet-menu.xml
+
 CLEANFILES = $(server_in_files) $(server_DATA)
 
-EXTRA_DIST = \
-	hinedo-applet.server.in.in
+EXTRA_DIST =                   \
+	hinedo-applet.server.in.in \
+	$(ui_DATA)
 
 
 %.server: %.server.in $(INTLTOOL_MERGE) $(wildcard $(top_srcdir)/po/*.po)

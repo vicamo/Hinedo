@@ -115,7 +115,7 @@ hinedo_applet_show_soup_error (SoupMessage *message)
                                      GTK_DIALOG_DESTROY_WITH_PARENT,
                                      GTK_MESSAGE_ERROR,
                                      GTK_BUTTONS_CLOSE,
-                                     "Error update playlist from '%s', %s",
+                                     _("Error update playlist from '%s', %s"),
                                      urlstr, message->reason_phrase);
 
     gtk_dialog_run (GTK_DIALOG (dialog));
@@ -314,15 +314,15 @@ hinedo_applet_play_radio (HinedoApplet *hinedo,
                           GError      **error);
 
 static const HinedoHouse houses[] = {
-    { 1, "Movie",              NULL},
-    { 2, "Theater",            NULL},
-    { 4, "Entertainment",      NULL},
-    { 5, "Travel",             NULL},
-    { 3, "Sport",              NULL},
-    { 6, "News",               NULL},
-    { 7, "Music",              NULL},
-    { 8, "Radio",              hinedo_applet_play_radio},
-    {12, "Optical Generation", NULL}
+    { 1, N_("Movie"),              NULL},
+    { 2, N_("Theater"),            NULL},
+    { 4, N_("Entertainment"),      NULL},
+    { 5, N_("Travel"),             NULL},
+    { 3, N_("Sport"),              NULL},
+    { 6, N_("News"),               NULL},
+    { 7, N_("Music"),              NULL},
+    { 8, N_("Radio"),              hinedo_applet_play_radio},
+    {12, N_("Optical Generation"), NULL}
 };
 
 static const gchar *radio_murl_format = \
@@ -539,7 +539,7 @@ on_menu_soup_query_callback (HinedoApplet           *hinedo,
         GtkWidget *menu_item;
 
         /* append a item to show no contents available */
-        menu_item = gtk_menu_item_new_with_label ("(None)");
+        menu_item = gtk_menu_item_new_with_label (_("(None)"));
         gtk_widget_show (menu_item);
         gtk_menu_shell_append (GTK_MENU_SHELL (data->menu), menu_item);
     }
@@ -567,7 +567,7 @@ on_category_menu_signal_show (GtkMenu      *menu,
                          G_CALLBACK (on_category_menu_signal_show), hinedo, NULL);
 
     /* add a temp item to show it's at retrieving. */
-    menu_item = gtk_menu_item_new_with_label ("Retrieving items ...");
+    menu_item = gtk_menu_item_new_with_label (_("Retrieving items ..."));
     gtk_widget_show (menu_item);
     gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
 
@@ -650,7 +650,7 @@ on_house_menu_signal_show (GtkMenu      *menu,
                          G_CALLBACK (on_house_menu_signal_show), hinedo, NULL);
 
     /* add a temp item to show it's at retrieving. */
-    menu_item = gtk_menu_item_new_with_label ("Retrieving categories ...");
+    menu_item = gtk_menu_item_new_with_label (_("Retrieving categories ..."));
     gtk_widget_show (menu_item);
     gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
 
@@ -684,7 +684,7 @@ hinedo_applet_setup_ui (HinedoApplet *hinedo)
     hinedo->playlist_menu = GTK_MENU (gtk_menu_new ());
 
     /* the stop menu item */
-    menu_item = gtk_radio_menu_item_new_with_mnemonic (NULL, "Stop");
+    menu_item = gtk_radio_menu_item_new_with_mnemonic (NULL, _("Stop"));
     gtk_menu_shell_append (GTK_MENU_SHELL (hinedo->playlist_menu), menu_item);
 
     hinedo->playlist_group = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (menu_item));

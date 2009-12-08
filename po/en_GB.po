@@ -1,0 +1,94 @@
+# English translations for hinedo-applet package.
+# Copyright (C) 2009 THE hinedo-applet'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the hinedo-applet package.
+# Vicamo Yang <vicamo@gmail.com>, 2009.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: hinedo-applet 0.9\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2009-12-08 19:13+0800\n"
+"PO-Revision-Date: 2009-12-08 19:13+0800\n"
+"Last-Translator: Vicamo Yang <vicamo@gmail.com>\n"
+"Language-Team: English (British)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: ../src/hinedo-applet.c:118
+#, c-format
+msgid "Error update playlist from '%s', %s"
+msgstr "Error update playlist from '%s', %s"
+
+#: ../src/hinedo-applet.c:317
+msgid "Movie"
+msgstr "Movie"
+
+#: ../src/hinedo-applet.c:318
+msgid "Theater"
+msgstr "Theater"
+
+#: ../src/hinedo-applet.c:319
+msgid "Entertainment"
+msgstr "Entertainment"
+
+#: ../src/hinedo-applet.c:320
+msgid "Travel"
+msgstr "Travel"
+
+#: ../src/hinedo-applet.c:321
+msgid "Sport"
+msgstr "Sport"
+
+#: ../src/hinedo-applet.c:322
+msgid "News"
+msgstr "News"
+
+#: ../src/hinedo-applet.c:323
+msgid "Music"
+msgstr "Music"
+
+#: ../src/hinedo-applet.c:324
+msgid "Radio"
+msgstr "Radio"
+
+#: ../src/hinedo-applet.c:325
+msgid "Optical Generation"
+msgstr "Optical Generation"
+
+#. append a item to show no contents available
+#: ../src/hinedo-applet.c:542
+msgid "(None)"
+msgstr "(None)"
+
+#. add a temp item to show it's at retrieving.
+#: ../src/hinedo-applet.c:570
+msgid "Retrieving items ..."
+msgstr "Retrieving items ..."
+
+#. add a temp item to show it's at retrieving.
+#: ../src/hinedo-applet.c:653
+msgid "Retrieving categories ..."
+msgstr "Retrieving categories ..."
+
+#. the stop menu item
+#: ../src/hinedo-applet.c:687
+msgid "Stop"
+msgstr "Stop"
+
+#: ../src/main.c:58
+msgid "About "
+msgstr "About "
+
+#: ../src/main.c:172
+msgid "Hinedo Applet"
+msgstr "Hinedo Applet"
+
+#: ../src/applet-menu.xml.h:1
+msgid "_About"
+msgstr "_About"
+
+#: ../src/applet-menu.xml.h:2
+msgid "_Preferences"
+msgstr "_Preferences"

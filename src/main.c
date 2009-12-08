@@ -55,7 +55,7 @@ on_panel_applet_callback_about (BonoboUIComponent *component,
 
     gtk_show_about_dialog (NULL,
                           "program-name",   PACKAGE_NAME,
-                          "title",          _("About " PACKAGE_NAME),
+                          "title",          _("About hinedo-applet"),
                           "version",        PACKAGE_VERSION,
                           "copyright",      "\xC2\xA9 2009 Vicamo Yang\n\xC2\xA9 2007 PCMan",
                           "website",        PACKAGE_URL,
@@ -155,20 +155,6 @@ applet_factory (PanelApplet *applet,
                 const gchar *iid,
                 gpointer     user_data)
 {
-    static const gchar *xml =
-        "<popup name=\"button3\">\n"
-            "<menuitem name=\"Preferences Item\" "
-                      "verb=\"Preferences\" "
-                      "_label=\"_Preferences...\" "
-                      "pixtype=\"stock\" "
-                      "pixname=\"gtk-properties\"/>\n"
-            "<menuitem name=\"About Item\" "
-                      "verb=\"About\" "
-                      "_label=\"_About...\" "
-                      "pixtype=\"stock\" "
-                      "pixname=\"gtk-about\"/>\n"
-        "</popup>\n";
-
     static const BonoboUIVerb verbs [] = {
         BONOBO_UI_VERB ("Preferences", (BonoboUIVerbFn) on_panel_applet_callback_preference),
         BONOBO_UI_VERB ("About",       (BonoboUIVerbFn) on_panel_applet_callback_about),
@@ -183,7 +169,7 @@ applet_factory (PanelApplet *applet,
 
     gst_init (NULL, NULL);
 
-    g_set_application_name ("Hinedo Applet");
+    g_set_application_name (_("Hinedo Applet"));
 
     gtk_window_set_default_icon_name ("hinedo-applet");
 
@@ -197,7 +183,10 @@ applet_factory (PanelApplet *applet,
     gtk_container_add (GTK_CONTAINER (applet), image);
 
     /* add preference, about menu */
-    panel_applet_setup_menu (applet, xml, verbs, hinedo);
+    panel_applet_setup_menu_from_file (
+        applet,
+        PACKAGE_DATA_DIR "/hinedo-applet/ui", "applet-menu.xml", NULL,
+        verbs, hinedo);
 
     /* connect signals */
     g_signal_connect (G_OBJECT (applet), "button-press-event",
