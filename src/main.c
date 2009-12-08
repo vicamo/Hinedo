@@ -162,6 +162,7 @@ applet_factory (PanelApplet *applet,
     };
 
     HinedoApplet *hinedo;
+    GdkPixbuf *pixbuf;
     GtkWidget *image;
 
     if (strcmp (iid, "OAFIID:hinedo-appletApplet") != 0)
@@ -179,7 +180,11 @@ applet_factory (PanelApplet *applet,
     panel_applet_set_flags (PANEL_APPLET (applet), PANEL_APPLET_EXPAND_MINOR);
 
     /* applet icon */
-    image = gtk_image_new_from_file (PACKAGE_DATA_DIR "/pixmaps/hinedo-applet.png");
+    pixbuf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
+                                       "hinedo-applet", 24, 0, NULL);
+    image = gtk_image_new_from_pixbuf (pixbuf);
+    g_object_unref (G_OBJECT (pixbuf));
+
     gtk_container_add (GTK_CONTAINER (applet), image);
 
     /* add preference, about menu */
