@@ -699,7 +699,7 @@ hinedo_applet_setup_ui (HinedoApplet *hinedo)
     /* per house settings */
     for (ii = 0; ii < G_N_ELEMENTS (houses); ++ii)
     {
-        menu_item = gtk_menu_item_new_with_label (houses[ii].name);
+        menu_item = gtk_menu_item_new_with_label (_(houses[ii].name));
         gtk_menu_shell_append (GTK_MENU_SHELL (hinedo->playlist_menu), menu_item);
 
         menu = gtk_menu_new ();
