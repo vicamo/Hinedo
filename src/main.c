@@ -183,6 +183,10 @@ applet_factory (PanelApplet *applet,
 
     gst_init (NULL, NULL);
 
+    g_set_application_name ("Hinedo Applet");
+
+    gtk_window_set_default_icon_name ("hinedo-applet");
+
     hinedo = hinedo_applet_new (applet);
 
     /* should not expand */

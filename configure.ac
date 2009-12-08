@@ -1,7 +1,11 @@
 dnl Process this file with autoconf to produce a configure script.
 dnl Created by Anjuta application wizard.
 
-AC_INIT(hinedo-applet, 0.9, http://of.openfoundry.org/projects/814)
+AC_INIT(hinedo-applet,
+        0.9,
+        [http://github.com/vicamo/Hinedo/issues],
+        [hinedo-applet],
+        [http://github.com/vicamo/Hinedo])
 
 AC_CONFIG_MACRO_DIR([m4])
 
