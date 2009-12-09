@@ -505,6 +505,9 @@ on_category_menu_json_foreach_callback (JsonArray              *array,
     JsonNode *name_node;
     GtkWidget *menu_item;
     GSList *group;
+    gint house_id;
+    gint category_id;
+    gint media_id;
 
     object = json_node_get_object (node);
 
@@ -513,6 +516,16 @@ on_category_menu_json_foreach_callback (JsonArray              *array,
     {
         return;
     }
+
+    house_id = GPOINTER_TO_INT (
+            g_object_get_data (G_OBJECT (data->menu), hkey));
+    category_id = GPOINTER_TO_INT (
+            g_object_get_data (G_OBJECT (data->menu), ckey));
+    media_id = atoi (json_node_get_string (id_node));
+
+    /* skip media_id with value equals 0 (empty) or category_id (all) */
+    if ((media_id <= 0) || (media_id == category_id))
+        return;
 
     group = data->hinedo->playlist_group;
     menu_item = gtk_radio_menu_item_new_with_label (
@@ -524,12 +537,12 @@ on_category_menu_json_foreach_callback (JsonArray              *array,
     data->hinedo->playlist_group = group;
 
     /* remember house & category & item id */
-    g_object_set_data (G_OBJECT (menu_item), hkey,
-                       g_object_get_data (G_OBJECT (data->menu), hkey));
-    g_object_set_data (G_OBJECT (menu_item), ckey,
-                       g_object_get_data (G_OBJECT (data->menu), ckey));
-    g_object_set_data (G_OBJECT (menu_item), mkey,
-                       GINT_TO_POINTER (atoi (json_node_get_string (id_node))));
+    g_object_set_data (G_OBJECT (menu_item),
+                       hkey, GINT_TO_POINTER (house_id));
+    g_object_set_data (G_OBJECT (menu_item),
+                       ckey, GINT_TO_POINTER (category_id));
+    g_object_set_data (G_OBJECT (menu_item),
+                       mkey, GINT_TO_POINTER (media_id));
 
     /* automatic query items */
     g_signal_connect (G_OBJECT (menu_item), "toggled",
@@ -583,6 +596,7 @@ on_menu_soup_query_callback (HinedoApplet           *hinedo,
 
         /* append a item to show no contents available */
         menu_item = gtk_menu_item_new_with_label (_("(None)"));
+        gtk_widget_set_sensitive (menu_item, FALSE);
         gtk_widget_show (menu_item);
         gtk_menu_shell_append (GTK_MENU_SHELL (data->menu), menu_item);
     }
